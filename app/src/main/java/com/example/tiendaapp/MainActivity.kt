@@ -4,13 +4,28 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.tiendaapp.ui.theme.TiendaAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +34,63 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TiendaAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                TiendaApp()
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+fun TiendaApp() {
+    val navController = rememberNavController()
+    val viewModel: ProductViewModel = viewModel()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val enLista = backStackEntry?.destination?.route != "detalle/{id}"
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    TiendaAppTheme {
-        Greeting("Android")
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Tienda DummyJSON",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    if (!enLista) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color(0xFF6C4DFF)
+                )
+            )
+        }
+    ) { paddingValues ->
+        NavHost(
+            navController = navController,
+            startDestination = "lista",
+            modifier = Modifier.padding(paddingValues)
+        ) {
+            composable("lista") {
+                ListaProductosScreen(viewModel) { id ->
+                    navController.navigate("detalle/$id")
+                }
+            }
+            composable(
+                "detalle/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.IntType })
+            ) {
+                DetalleProductoScreen(viewModel, it.arguments!!.getInt("id"))
+            }
+        }
     }
 }
